@@ -24,8 +24,7 @@ async function startGlobe() {
         controls.enablePan = false;
         controls.minDistance = 5.2;
         controls.maxDistance = 9;
-        controls.autoRotate = true;
-        controls.autoRotateSpeed = 0.55;
+        controls.autoRotate = false;
 
         const earthTexture = createEarthTexture();
         const earth = new THREE.Mesh(
@@ -38,19 +37,16 @@ async function startGlobe() {
         );
         scene.add(earth);
 
-        scene.add(new THREE.AmbientLight(0x9fc6dd, 1.4));
-        const sun = new THREE.DirectionalLight(0xfff1c7, 2.7);
+        scene.add(new THREE.AmbientLight(0x9fc6dd, 0.5));
+        const sun = new THREE.DirectionalLight(0xfff1c7, 3);
         sun.position.set(5, 3, 6);
         scene.add(sun);
 
         addStars(scene, THREE);
-        addPlateBoundaries(scene, THREE);
-        addLandformMarkers(scene, THREE);
 
         let paused = false;
         toggleButton.addEventListener("click", () => {
             paused = !paused;
-            controls.autoRotate = !paused;
             toggleButton.setAttribute("aria-pressed", String(paused));
             toggleButton.textContent = paused ? "Resume rotation" : "Pause rotation";
         });
@@ -66,9 +62,13 @@ async function startGlobe() {
         resize();
         statusText.classList.add("hidden");
 
+        const clock = new THREE.Clock();
         function animate() {
+            const delta = clock.getDelta();
+            if (!paused) {
+                earth.rotation.y += delta * 0.06;
+            }
             controls.update();
-            earth.rotation.y = 0;
             renderer.render(scene, camera);
             requestAnimationFrame(animate);
         }
@@ -112,57 +112,6 @@ async function startGlobe() {
             geometry,
             new THREE.PointsMaterial({ color: 0xb8e1ef, size: 0.035, transparent: true, opacity: 0.7 })
         ));
-    }
-
-    function addPlateBoundaries(scene, THREE) {
-        const boundaryTypes = [
-            { color: 0xffdc55, paths: [
-                [[72,-35],[68,-20],[58,-12],[48,-8],[30,-20],[12,-32],[0,-15],[-20,-20],[-45,-10],[-55,10]],
-                [[63,-30],[55,-25],[42,-25],[28,-33],[15,-25],[5,-18]],
-                [[-5,-110],[5,-105],[12,-100],[18,-95],[22,-85]]
-            ]},
-            { color: 0xff6b67, paths: [
-                [[50,155],[38,145],[26,130],[15,120],[8,105],[-7,110],[-12,125]],
-                [[35,-122],[25,-115],[15,-105],[10,-90]],
-                [[-20,-75],[-30,-72],[-45,-68]],
-                [[15,60],[5,80],[-5,95],[-15,110]],
-                [[40,-30],[35,-20],[25,-30],[12,-20]]
-            ]},
-            { color: 0x69dfc6, paths: [
-                [[38,-122],[32,-118],[28,-112],[20,-110],[15,-105]],
-                [[38,-30],[30,-42],[20,-48],[10,-50]],
-                [[-34,-70],[-38,-75],[-42,-72]]
-            ]}
-        ];
-
-        boundaryTypes.forEach(type => {
-            type.paths.forEach(path => {
-                const positions = path.map(([lat, lon]) => latLonToVector(lat, lon));
-                const geometry = new THREE.BufferGeometry().setFromPoints(positions);
-                const line = new THREE.Line(
-                    geometry,
-                    new THREE.LineBasicMaterial({ color: type.color, transparent: true, opacity: 0.95 })
-                );
-                scene.add(line);
-            });
-        });
-    }
-
-    function addLandformMarkers(scene, THREE) {
-        const places = [
-            [64.9631, -19.0208, 0xffdc55],
-            [11.35, 142.2, 0xff6b67],
-            [19.4069, -155.2834, 0xffa24d],
-            [27.9881, 86.925, 0xffffff]
-        ];
-        places.forEach(([lat, lon, color]) => {
-            const marker = new THREE.Mesh(
-                new THREE.SphereGeometry(0.055, 16, 16),
-                new THREE.MeshBasicMaterial({ color })
-            );
-            marker.position.copy(latLonToVector(lat, lon, 2.09));
-            scene.add(marker);
-        });
     }
 }
 
